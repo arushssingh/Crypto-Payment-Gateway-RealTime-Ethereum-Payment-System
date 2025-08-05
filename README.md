@@ -5,12 +5,12 @@ A secure, real-time Ethereum (Sepolia) payment gateway for merchants to receive 
 ⸻
 
 ✨ Features
-	•	💳 Ethereum Payments – Receive ETH on Sepolia testnet with live INR/USD conversion.
-	•	⚡ Real-time Dashboard – Merchants see payments instantly via Socket.IO notifications.
-	•	🔒 Secure Authentication – Merchant login with JWT-based auth and password hashing.
-	•	🔔 Live Payment Alerts – Dashboard updates instantly when a customer pays.
-	•	📜 Transaction History – View recent payments with transaction hashes linked to Etherscan.
-	•	🛡 Security – .env secrets, input validation, and secure password storage with bcrypt.
+	•	💳 Ethereum Payments – Receive ETH on Sepolia testnet with live INR/USD conversion.  
+	•	⚡ Real-time Dashboard – Merchants see payments instantly via Socket.IO notifications.  
+	•	🔒 Secure Authentication – Merchant login with JWT-based auth and password hashing.  
+	•	🔔 Live Payment Alerts – Dashboard updates instantly when a customer pays.  
+	•	📜 Transaction History – View recent payments with transaction hashes linked to Etherscan.  
+	•	🛡 Security – .env secrets, input validation, and secure password storage with bcrypt.  
 
 ⸻
 
