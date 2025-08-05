@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Merchant Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: #111;
+      color: #fff;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #00ffc8;
+    }
+
+    .payments {
+      display: grid;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .payment-card {
+      background: #1e1e1e;
+      padding: 1rem;
+      border-left: 4px solid #00ffc8;
+      transition: transform 0.3s ease;
+    }
+
+    .payment-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .payment-card strong {
+      color: #00ffc8;
+    }
+
+    #logout {
+      background: #ff3c3c;
+      padding: 0.5rem 1rem;
+      border: none;
+      color: white;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+
+    .notification {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #222;
+      padding: 1rem;
+      border: 2px solid #00ffc8;
+      color: #00ffc8;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .notification.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🧾 Merchant Dashboard</h1>
+  <button id="logout">Logout</button>
+
+  <div class="payments" id="payments"></div>
+
+  <div class="notification" id="notification">New payment received!</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const token = localStorage.getItem("merchant_token");
+    if (!token) {
+      window.location.href = "/login.html";
+    }
+
+    const paymentsDiv = document.getElementById("payments");
+    const notification = document.getElementById("notification");
+
+    async function fetchPayments() {
+      const res = await fetch("/api/merchant-dashboard", {
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        paymentsDiv.innerHTML = "";
+        data.payments.forEach(p => {
+          const el = document.createElement("div");
+          el.className = "payment-card";
+          el.innerHTML = `
+            <div><strong>From:</strong> ${p.from}</div>
+            <div><strong>ETH:</strong> ${p.valueEth}</div>
+            <div><strong>${p.fiatCurrency}:</strong> ${p.valueFiat}</div>
+            <div><strong>TX:</strong> <a href="https://sepolia.etherscan.io/tx/${p.txHash}" target="_blank">${p.txHash.slice(0, 12)}...</a></div>
+          `;
+          paymentsDiv.appendChild(el);
+        });
+      }
+    }
+
+    function showNotification() {
+      notification.classList.add("show");
+      setTimeout(() => {
+        notification.classList.remove("show");
+      }, 3000);
+    }
+
+    const socket = io();
+    socket.on("newPayment", (payment) => {
+      showNotification();
+      fetchPayments(); // Refresh list
+    });
+
+    document.getElementById("logout").addEventListener("click", () => {
+      localStorage.removeItem("merchant_token");
+      window.location.href = "/login.html";
+    });
+
+    fetchPayments();
+  </script>
+</body>
+</html>

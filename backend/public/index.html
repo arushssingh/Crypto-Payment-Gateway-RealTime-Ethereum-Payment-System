@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Crypto Payment</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f6fc;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .overlay {
+      background: rgba(0, 0, 0, 0.4);
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .payment-modal {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      animation: slideUp 0.5s ease-out;
+    }
+
+    h2 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .info {
+      margin-bottom: 1rem;
+      color: #555;
+    }
+
+    .wallet-address {
+      font-family: monospace;
+      background: #f0f0f0;
+      padding: 0.5rem;
+      border-radius: 6px;
+      margin-top: 0.3rem;
+      word-break: break-word;
+    }
+
+    .pay-button {
+      margin-top: 1.5rem;
+      padding: 0.9rem;
+      width: 100%;
+      border: none;
+      font-size: 1rem;
+      background: #4f46e5;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .pay-button:hover {
+      background: #4338ca;
+    }
+
+    .pay-button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4f46e5;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 10px;
+    }
+
+    #status {
+      margin-top: 1rem;
+      font-weight: 600;
+      color: #555;
+      text-align: center;
+    }
+
+    .success-checkmark {
+      margin: auto;
+      margin-top: 2rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #4caf50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pop 0.3s ease-in-out;
+    }
+
+    .success-checkmark::before {
+      content: '✓';
+      font-size: 2rem;
+      color: white;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.5); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="payment-modal">
+      <h2>Pay with Ethereum (Sepolia)</h2>
+      <div class="info">Amount: ₹9 (~ <span id="ethAmount">...</span> ETH)</div>
+      <div class="info">
+        Wallet Address:
+        <div class="wallet-address" id="walletAddress">...</div>
+      </div>
+      <button class="pay-button" onclick="handlePayment()" id="payButton">Pay Now</button>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    let ethAmount = null;
+    let walletAddress = null;
+
+    async function fetchPrice() {
+      try {
+        const res = await fetch("http://localhost:3000/get-price");
+        const data = await res.json();
+
+        ethAmount = data.ethAmount;
+        walletAddress = data.walletAddress;
+
+        document.getElementById("ethAmount").textContent = ethAmount;
+        document.getElementById("walletAddress").textContent = walletAddress;
+      } catch (err) {
+        document.getElementById("status").textContent = "❌ Failed to load ETH price.";
+        console.error("Price fetch error:", err);
+      }
+    }
+
+    async function handlePayment() {
+      const status = document.getElementById("status");
+      const payButton = document.getElementById("payButton");
+
+      if (!window.ethereum) {
+        return (status.textContent = "❌ MetaMask is not installed.");
+      }
+
+      if (!ethAmount || !walletAddress) {
+        return (status.textContent = "❌ Cannot proceed without ETH price.");
+      }
+
+      try {
+        status.innerHTML = `<span class="spinner"></span>Waiting for MetaMask confirmation...`;
+        payButton.disabled = true;
+
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        const sender = accounts[0];
+
+        const valueHex = `0x${(BigInt(parseFloat(ethAmount) * 1e18)).toString(16)}`;
+
+        const tx = {
+          from: sender,
+          to: walletAddress,
+          value: valueHex
+        };
+
+        const txHash = await window.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [tx],
+        });
+
+        status.innerHTML = `
+          <div class="success-checkmark"></div>
+          <div style="margin-top: 1rem;">✅ Payment successful!<br />TX Hash: <code>${txHash}</code></div>
+        `;
+
+        payButton.textContent = "Paid";
+      } catch (err) {
+        console.error("Payment error:", err);
+        status.textContent = "❌ Payment failed or canceled.";
+        payButton.disabled = false;
+      }
+    }
+
+    fetchPrice();
+  </script>
+</body>
+</html>
